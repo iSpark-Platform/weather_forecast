@@ -64,9 +64,8 @@ const WeatherMap = {
     });
 
     // Basemaps
-    const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '©OpenStreetMap ©CARTO',
-      subdomains: 'abcd',
+    const darkTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
     });
     const satTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -92,6 +91,10 @@ const WeatherMap = {
       document.getElementById('view-india')?.classList.remove('active');
       this.loadWorldMapData(this.fullMap, true);
     }
+
+    setTimeout(() => {
+      if (this.fullMap) this.fullMap.invalidateSize();
+    }, 200);
 
     // View toggle buttons
     document.getElementById('view-india')?.addEventListener('click', () => {
@@ -181,9 +184,8 @@ const WeatherMap = {
 
   // ── Tile Layer ─────────────────────────────────────────────────
   addTileLayer(map) {
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '©OpenStreetMap ©CARTO',
-      subdomains: 'abcd',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
     }).addTo(map);
   },
@@ -295,6 +297,7 @@ const WeatherMap = {
   },
 
   updateCounts(items) {
+    const list = Array.isArray(items) ? items : [];
     const cntAll = document.getElementById('cnt-all');
     const cntRed = document.getElementById('cnt-red');
     const cntOrange = document.getElementById('cnt-orange');
@@ -302,11 +305,11 @@ const WeatherMap = {
     const cntGreen = document.getElementById('cnt-green');
 
     if (!cntAll) return;
-    cntAll.textContent = items.length;
-    cntRed.textContent = items.filter(i => i.risk_level === 'RED').length;
-    cntOrange.textContent = items.filter(i => i.risk_level === 'ORANGE').length;
-    cntYellow.textContent = items.filter(i => i.risk_level === 'YELLOW').length;
-    cntGreen.textContent = items.filter(i => i.risk_level === 'GREEN').length;
+    cntAll.textContent = list.length;
+    if (cntRed) cntRed.textContent = list.filter(i => i && i.risk_level === 'RED').length;
+    if (cntOrange) cntOrange.textContent = list.filter(i => i && i.risk_level === 'ORANGE').length;
+    if (cntYellow) cntYellow.textContent = list.filter(i => i && i.risk_level === 'YELLOW').length;
+    if (cntGreen) cntGreen.textContent = list.filter(i => i && i.risk_level === 'GREEN').length;
   },
 
   // ── Render Custom HTML Markers ──────────────────────────────────
@@ -451,14 +454,13 @@ const WeatherMap = {
   },
 };
 
-// Auto-init based on page
+// Auto-init based on active tab
 document.addEventListener('DOMContentLoaded', () => {
-  const page = window.PAGE || 'home';
-  if (page === 'map') {
+  const tab = window.ACTIVE_TAB || 'dashboard';
+  if (tab === 'map' || document.getElementById('full-map')) {
     WeatherMap.initFullMap();
-  } else if (page === 'coastal') {
-    setTimeout(() => WeatherMap.initTsunamiMap(), 500);
-  } else if (page === 'home') {
-    setTimeout(() => WeatherMap.initMiniMaps(), 1000);
+  }
+  if (document.getElementById('tsunami-map')) {
+    setTimeout(() => WeatherMap.initTsunamiMap(), 300);
   }
 });

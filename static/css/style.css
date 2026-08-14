@@ -300,14 +300,16 @@ body {
 /* ── Dashboard Grid ───────────────────────────────────────────── */
 .dashboard {
   max-width: 1400px; margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 0;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 1.5rem;
+  align-items: stretch;
 }
-.card-current      { grid-column: span 8; }
-.card-stats        { grid-column: span 4; }
+.card-current      { grid-column: span 8; display: flex; flex-direction: column; justify-content: space-between; }
+.card-stats        { grid-column: span 4; display: flex; flex-direction: column; justify-content: space-between; }
 .card-forecast     { grid-column: span 12; }
+.dashboard-feature-grid { grid-column: span 12; width: 100%; }
 .card-chart        { grid-column: span 7; }
 .card-map          { grid-column: span 5; }
 .card-coastal      { grid-column: span 4; }
@@ -329,7 +331,7 @@ body {
 .detail-value { font-size: .9rem; font-weight: 600; }
 
 /* ── Stats Grid ──────────────────────────────────────────────── */
-.stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: .8rem; height: 100%; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
 .stat-item { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem .5rem; background: rgba(255,255,255,0.03); border-radius: 12px; text-align: center; transition: background .2s; }
 .stat-item:hover { background: rgba(79,142,247,0.08); }
 .stat-icon  { font-size: 1.5rem; margin-bottom: .3rem; }
@@ -641,28 +643,274 @@ body {
 @keyframes fadeInUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fadeInDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
 
-/* ── Responsive ──────────────────────────────────────────────── */
-@media (max-width: 1100px) {
-  .dashboard { grid-template-columns: repeat(6,1fr); }
-  .card-current    { grid-column: span 6; }
-  .card-stats      { grid-column: span 6; }
-  .card-chart      { grid-column: span 6; }
-  .card-map        { grid-column: span 6; }
-  .card-coastal    { grid-column: span 6; }
-  .card-hourly     { grid-column: span 6; }
-  .card-tutor      { grid-column: span 6; }
-  .card-world-map  { grid-column: span 6; }
-  .coastal-detail-grid { grid-template-columns: 1fr 1fr; }
-  .coastal-risk-card, .threat-matrix-card, .tsunami-zones-card, .coastal-forecast-card, .bulletin-card, .flood-rivers-card { grid-column: span 1; }
+/* ── Responsive & Card Layout Systems ──────────────────────────── */
+
+/* Slide Deck Floating Controls */
+.slide-deck-hud {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(10, 14, 26, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 40px;
+  padding: 0.5rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(79, 142, 247, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 95vw;
 }
+
+.slide-deck-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  padding: 0.45rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.slide-deck-btn:hover {
+  background: rgba(79, 142, 247, 0.25);
+  border-color: var(--accent-blue);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.slide-deck-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.slide-counter-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: rgba(79, 142, 247, 0.15);
+  border: 1px solid rgba(79, 142, 247, 0.3);
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.slide-dots-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.slide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.slide-dot:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.2);
+}
+.slide-dot.active {
+  width: 22px;
+  border-radius: 10px;
+  background: var(--accent-blue);
+  box-shadow: 0 0 10px rgba(79, 142, 247, 0.8);
+}
+
+/* Equal Height & Aligned Feature Navigation Cards */
+.dashboard-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: stretch;
+}
+
+.feature-nav-card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  min-height: 140px;
+  border: 1px solid var(--border-card);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.feature-nav-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: var(--accent-blue) !important;
+  box-shadow: 0 8px 30px rgba(79, 142, 247, 0.25) !important;
+}
+.feature-nav-card .card-header {
+  margin-bottom: 0.5rem;
+}
+
+/* Home Page Views Wrapper Extra Bottom Padding */
+.views-wrapper {
+  padding-bottom: 7rem !important;
+}
+
+/* Navbar Link Scrolling on Mobile/Tablet */
+.nav-links {
+  display: flex;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0 auto;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  scrollbar-width: none;
+  padding: 0.2rem 0;
+}
+.nav-links::-webkit-scrollbar {
+  display: none;
+}
+.nav-link {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1200px) {
+  .dashboard { grid-template-columns: repeat(12, 1fr); }
+  .card-current { grid-column: span 12; }
+  .card-stats { grid-column: span 12; }
+  .card-forecast { grid-column: span 12; }
+}
+
+@media (max-width: 1100px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .navbar {
+    padding: 0 1rem;
+    gap: 1rem;
+  }
+  .nav-title {
+    font-size: 1rem;
+  }
+  .nav-time {
+    display: none;
+  }
+  .hero-floating-cards {
+    display: none;
+  }
+  .hero {
+    padding: 2.5rem 1rem 2rem;
+  }
+  .legend-container {
+    justify-content: center;
+  }
+  .legend-items-grid {
+    justify-content: center;
+    width: 100%;
+  }
+  .tutor-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .tutor-sidebar {
+    max-height: none;
+  }
+  .coastal-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .coastal-detail-grid > * {
+    grid-column: span 1 !important;
+  }
+}
+
 @media (max-width: 768px) {
-  .nav-links { display: none; }
-  .hero-floating-cards { display: none; }
-  .dashboard { grid-template-columns: 1fr; padding: 1rem; }
-  .dashboard > * { grid-column: span 1 !important; }
-  .tutor-layout { grid-template-columns: 1fr; height: auto; }
-  .coastal-detail-grid { grid-template-columns: 1fr; }
-  .coastal-detail-grid > * { grid-column: span 1 !important; }
+  .dashboard {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+  .dashboard > * {
+    grid-column: span 12 !important;
+  }
+  .current-weather-body {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .current-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .forecast-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+  .slide-deck-hud {
+    padding: 0.4rem 0.8rem;
+    gap: 0.5rem;
+    bottom: 0.75rem;
+  }
+  .slide-deck-btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+  }
+  .slide-dots-wrapper {
+    display: none;
+  }
+  .chat-input-row {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+  .chat-input-row textarea {
+    font-size: 0.82rem;
+    padding: 0.6rem 0.8rem;
+  }
+  .btn-send {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+  }
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+  .footer-links {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .current-details {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .slide-counter-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
 }
 /* ── Custom Animated Map Markers ───────────────────────────────────── */
 .custom-map-pin {
@@ -1146,6 +1394,8 @@ button.nav-link {
 
 /* ── Collapsible Accordion Card Styles ────────────────────────── */
 .accordion-controls-bar {
+  grid-column: 1 / -1;
+  width: 100%;
   display: flex;
   justify-content: flex-end;
   align-items: center;

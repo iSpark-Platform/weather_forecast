@@ -259,12 +259,12 @@ const WeatherCharts = {
   // ── Gradient Fill Helper ───────────────────────────────────────
   gradientFill(ctx, color, alphaTop, alphaBot) {
     const chart = ctx.chart;
-    const { height } = chart;
+    const height = (chart && chart.height > 0) ? chart.height : (chart?.chartArea?.bottom || 300);
     const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, height);
     const hex = color.replace('#', '');
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
+    const r = parseInt(hex.slice(0, 2), 16) || 79;
+    const g = parseInt(hex.slice(2, 4), 16) || 142;
+    const b = parseInt(hex.slice(4, 6), 16) || 247;
     gradient.addColorStop(0, `rgba(${r},${g},${b},${alphaTop})`);
     gradient.addColorStop(1, `rgba(${r},${g},${b},${alphaBot})`);
     return gradient;

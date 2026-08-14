@@ -1,6 +1,7 @@
 # modules/map_data.py - GeoJSON Map Data Helper
 # Provides color-coded risk data for India state and world country maps
 
+import json
 from config import COASTAL_CITIES, WORLD_CITIES
 from modules.weather_service import fetch_weather
 from modules.risk_calculator import compute_risk_score, score_to_risk, assess_daily_risks
@@ -46,63 +47,61 @@ INDIA_STATES = [
 ]
 
 
-def fetch_map_data_india():
-    """Fetch weather risk for all Indian states and return map-ready JSON with GeoJSON features."""
-    results = []
-    geojson_features = []
-    
-    # Map for easy lookup of GeoJSON features by name
-    geo_lookup = {feat["properties"]["name"]: feat for feat in INDIA_STATES_GEOJSON["features"]}
-    
-    for state in INDIA_STATES:
-        try:
-            weather = fetch_weather(state["lat"], state["lon"], forecast_days=3)
-            if weather and weather.get("daily"):
-                score = compute_risk_score(weather["daily"][0])
-                risk = score_to_risk(score)
-                today = weather["daily"][0]
-                state_data = {
-                    "name":       state["name"],
-                    "lat":        state["lat"],
-                    "lon":        state["lon"],
-                    "coastal":    state["coastal"],
-                    "risk_score": score,
-                    "risk_level": risk["level"],
-                    "risk_label": risk["label"],
-                    "risk_color": risk["color"],
-                    "risk_emoji": risk["emoji"],
-                    "temp_max":   today.get("temp_max", "--"),
-                    "temp_min":   today.get("temp_min", "--"),
-                    "condition":  today.get("condition", "Unknown"),
-                    "icon":       today.get("icon", "❓"),
-                    "wind":       today.get("wind_speed", 0),
-                    "rain":       today.get("precipitation", 0),
-                    "precip_prob":today.get("precip_prob", 0),
-                    "description": risk["description"],
-                    "advisory":   risk["advisory"],
-                }
-                results.append(state_data)
-                
-                # Attach GeoJSON feature if available
-                if state["name"] in geo_lookup:
-                    feat = json.loads(json.dumps(geo_lookup[state["name"]]))
-                    feat["properties"].update(state_data)
-                    geojson_features.append(feat)
-            else:
-                fallback = _fallback_state(state)
-                results.append(fallback)
-                if state["name"] in geo_lookup:
-                    feat = json.loads(json.dumps(geo_lookup[state["name"]]))
-                    feat["properties"].update(fallback)
-                    geojson_features.append(feat)
-        except Exception as e:
-            print(f"Map data error for {state['name']}: {e}")
-            fallback = _fallback_state(state)
-            results.append(fallback)
+from concurrent.futures import ThreadPoolExecutor
+
+def _process_state(state, geo_lookup):
+    try:
+        weather = fetch_weather(state["lat"], state["lon"], forecast_days=3)
+        if weather and weather.get("daily"):
+            score = compute_risk_score(weather["daily"][0])
+            risk = score_to_risk(score)
+            today = weather["daily"][0]
+            state_data = {
+                "name":       state["name"],
+                "lat":        state["lat"],
+                "lon":        state["lon"],
+                "coastal":    state["coastal"],
+                "risk_score": score,
+                "risk_level": risk["level"],
+                "risk_label": risk["label"],
+                "risk_color": risk["color"],
+                "risk_emoji": risk["emoji"],
+                "temp_max":   today.get("temp_max", "--"),
+                "temp_min":   today.get("temp_min", "--"),
+                "condition":  today.get("condition", "Unknown"),
+                "icon":       today.get("icon", "❓"),
+                "wind":       today.get("wind_speed", 0),
+                "rain":       today.get("precipitation", 0),
+                "precip_prob":today.get("precip_prob", 0),
+                "description": risk["description"],
+                "advisory":   risk["advisory"],
+            }
+            feat = None
             if state["name"] in geo_lookup:
                 feat = json.loads(json.dumps(geo_lookup[state["name"]]))
-                feat["properties"].update(fallback)
-                geojson_features.append(feat)
+                feat["properties"].update(state_data)
+            return state_data, feat
+    except Exception as e:
+        print(f"Map data error for {state['name']}: {e}")
+    
+    fallback = _fallback_state(state)
+    feat = None
+    if state["name"] in geo_lookup:
+        feat = json.loads(json.dumps(geo_lookup[state["name"]]))
+        feat["properties"].update(fallback)
+    return fallback, feat
+
+
+def fetch_map_data_india():
+    """Fetch weather risk for all Indian states in parallel and return map-ready JSON with GeoJSON features."""
+    geo_lookup = {feat["properties"]["name"]: feat for feat in INDIA_STATES_GEOJSON["features"]}
+    
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(_process_state, state, geo_lookup) for state in INDIA_STATES]
+        results_tuples = [f.result() for f in futures]
+
+    results = [r[0] for r in results_tuples if r[0]]
+    geojson_features = [r[1] for r in results_tuples if r[1]]
 
     geojson_collection = {
         "type": "FeatureCollection",
@@ -115,39 +114,40 @@ def fetch_map_data_india():
     }
 
 
+def _process_world_city(city):
+    try:
+        weather = fetch_weather(city["lat"], city["lon"], forecast_days=3)
+        if weather and weather.get("daily"):
+            score = compute_risk_score(weather["daily"][0])
+            risk = score_to_risk(score)
+            today = weather["daily"][0]
+            return {
+                "name":       city["name"],
+                "country":    city["country"],
+                "lat":        city["lat"],
+                "lon":        city["lon"],
+                "risk_score": score,
+                "risk_level": risk["level"],
+                "risk_label": risk["label"],
+                "risk_color": risk["color"],
+                "risk_emoji": risk["emoji"],
+                "temp_max":   today.get("temp_max", "--"),
+                "temp_min":   today.get("temp_min", "--"),
+                "condition":  today.get("condition", "Unknown"),
+                "icon":       today.get("icon", "❓"),
+                "wind":       today.get("wind_speed", 0),
+                "rain":       today.get("precipitation", 0),
+                "description": risk["description"],
+            }
+    except Exception as e:
+        print(f"World map error for {city['name']}: {e}")
+    return _fallback_world(city)
+
+
 def fetch_map_data_world():
-    """Fetch weather risk for world major cities."""
-    results = []
-    for city in WORLD_CITIES:
-        try:
-            weather = fetch_weather(city["lat"], city["lon"], forecast_days=3)
-            if weather and weather.get("daily"):
-                score = compute_risk_score(weather["daily"][0])
-                risk = score_to_risk(score)
-                today = weather["daily"][0]
-                results.append({
-                    "name":       city["name"],
-                    "country":    city["country"],
-                    "lat":        city["lat"],
-                    "lon":        city["lon"],
-                    "risk_score": score,
-                    "risk_level": risk["level"],
-                    "risk_label": risk["label"],
-                    "risk_color": risk["color"],
-                    "risk_emoji": risk["emoji"],
-                    "temp_max":   today.get("temp_max", "--"),
-                    "temp_min":   today.get("temp_min", "--"),
-                    "condition":  today.get("condition", "Unknown"),
-                    "icon":       today.get("icon", "❓"),
-                    "wind":       today.get("wind_speed", 0),
-                    "rain":       today.get("precipitation", 0),
-                    "description": risk["description"],
-                })
-            else:
-                results.append(_fallback_world(city))
-        except Exception as e:
-            print(f"World map error for {city['name']}: {e}")
-            results.append(_fallback_world(city))
+    """Fetch weather risk for world major cities in parallel."""
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(_process_world_city, WORLD_CITIES))
     return results
 
 

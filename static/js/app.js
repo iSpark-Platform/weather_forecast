@@ -215,10 +215,10 @@ const WS = {
       if (window.WeatherMap) {
         if (!WeatherMap.fullMap) {
           WeatherMap.initFullMap();
-        } else {
-          WeatherMap.fullMap.invalidateSize();
-          setTimeout(() => WeatherMap.fullMap.invalidateSize(), 150);
         }
+        setTimeout(() => {
+          if (WeatherMap.fullMap) WeatherMap.fullMap.invalidateSize();
+        }, 100);
       }
     } else if (tabId === 'tutor') {
       document.querySelectorAll('#view-tutor .accordion-card').forEach(c => this.toggleAccordion(c, true));

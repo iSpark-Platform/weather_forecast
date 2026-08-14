@@ -269,7 +269,7 @@
       <p style="color: var(--text-secondary); margin-top: 0.2rem;">High-definition interactive parameter graphs for temperature, rain, and wind trends.</p>
     </div>
     <main class="analytics-main">
-      <section class="card card-chart accordion-card collapsed" id="temp-chart-card">
+      <section class="card card-chart accordion-card expanded" id="temp-chart-card">
         <div class="card-header">
           <div class="accordion-header-left">
             <h2><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> Parameter Trend Graph</h2>
@@ -318,7 +318,7 @@
       <div class="forecast-grid" id="forecast-grid" style="margin-top: 1.5rem;">
         <div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div><p>Loading 15-day cards…</p></div>
       </div>
-      <div class="card chart-card accordion-card collapsed" style="margin-top:2rem">
+      <div class="card chart-card accordion-card expanded" style="margin-top:2rem">
         <div class="card-header">
           <h2><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> 15-Day Temperature & Precipitation Trend</h2>
           <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
@@ -598,11 +598,11 @@
 <!-- Scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/tutor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/lingo_bundle.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script>
   window.ACTIVE_TAB = "{{ active_tab or 'dashboard' }}";
   window.DEFAULT_CITY = "{{ city or 'Mumbai' }}";
