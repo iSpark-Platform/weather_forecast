@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interactive Weather Risk Map — WeatherSense AI</title>
+  <meta name="description" content="Interactive color-coded weather risk map of India and the world with real-time danger indicators."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body { overflow: hidden; font-family: 'Inter', sans-serif; }
+    #full-map { position: fixed; top: 60px; left: 0; right: 0; bottom: 0; z-index: 1; }
+    .map-controls { position: fixed; top: 75px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .map-panel { position: fixed; top: 75px; left: 20px; z-index: 1000; width: 280px; }
+  </style>
+</head>
+<body style="background:#0a0e1a">
+<div class="bg-aurora" style="opacity:0.3"></div>
+
+<nav class="navbar" style="position:fixed;top:0;z-index:2000">
+  <div class="nav-brand"><span class="nav-logo"><i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></span><span class="nav-title">WeatherSense <span class="accent">AI</span></span></div>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-link"><i class="fa-solid fa-house"></i> Dashboard</a></li>
+    <li><a href="/forecast" class="nav-link"><i class="fa-solid fa-calendar-days"></i> 15-Day</a></li>
+    <li><a href="/coastal" class="nav-link"><i class="fa-solid fa-water"></i> Coastal</a></li>
+    <li><a href="/map" class="nav-link active"><i class="fa-solid fa-map-location-dot"></i> Risk Map</a></li>
+    <li><a href="/tutor" class="nav-link"><i class="fa-solid fa-robot"></i> AI Tutor</a></li>
+  </ul>
+  <div class="nav-time" id="nav-clock"></div>
+</nav>
+
+<!-- Full Screen Map Container -->
+<div id="full-map"></div>
+
+<!-- Top HUD Command Bar -->
+<div class="map-hud-bar">
+  <div class="map-hud-search">
+    <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted)"></i>
+    <input type="text" id="map-search-input" placeholder="Search state or city..." autocomplete="off"/>
+  </div>
+  <div class="filter-pills" id="risk-filters">
+    <button class="filter-pill active" data-filter="ALL">All (<span id="cnt-all">34</span>)</button>
+    <button class="filter-pill" data-filter="RED" style="color:var(--risk-red)"><i class="fa-solid fa-circle"></i> Danger (<span id="cnt-red">0</span>)</button>
+    <button class="filter-pill" data-filter="ORANGE" style="color:var(--risk-orange)"><i class="fa-solid fa-circle"></i> Warning (<span id="cnt-orange">0</span>)</button>
+    <button class="filter-pill" data-filter="YELLOW" style="color:var(--risk-yellow)"><i class="fa-solid fa-circle"></i> Caution (<span id="cnt-yellow">0</span>)</button>
+    <button class="filter-pill" data-filter="GREEN" style="color:var(--risk-green)"><i class="fa-solid fa-circle"></i> Safe (<span id="cnt-green">0</span>)</button>
+  </div>
+</div>
+
+<!-- Left Control Panel -->
+<div class="map-panel">
+  <div class="card" style="padding:1rem">
+    <h3 style="margin:0 0 .8rem;color:#fff;font-size:.9rem"><i class="fa-solid fa-sliders" style="color:var(--accent-blue)"></i> Map View</h3>
+    <div class="map-view-btns">
+      <button class="btn-map-view active" id="view-india"><i class="fa-solid fa-map-pin"></i> India States</button>
+      <button class="btn-map-view" id="view-world"><i class="fa-solid fa-globe"></i> World Cities</button>
+    </div>
+    <div style="margin-top:1rem">
+      <div class="map-legend-full">
+        <div class="mleg"><span style="color:#FF2D2D"><i class="fa-solid fa-circle"></i></span> DANGER — Extreme Hazard</div>
+        <div class="mleg"><span style="color:#FF8C00"><i class="fa-solid fa-circle"></i></span> WARNING — Severe Weather</div>
+        <div class="mleg"><span style="color:#FFD700"><i class="fa-solid fa-circle"></i></span> CAUTION — Unsettled Conditions</div>
+        <div class="mleg"><span style="color:#00C853"><i class="fa-solid fa-circle"></i></span> SAFE — Clear & Normal</div>
+      </div>
+    </div>
+    <div class="map-loading-info" id="map-loading-info" style="margin-top:.8rem;font-size:.75rem;color:#aaa">
+      <i class="fa-solid fa-rotate fa-spin"></i> Loading map data…
+    </div>
+  </div>
+</div>
+
+<!-- Right Controls -->
+<div class="map-controls">
+  <button class="map-ctrl-btn" id="map-refresh" title="Refresh risk data"><i class="fa-solid fa-rotate"></i></button>
+  <button class="map-ctrl-btn" id="map-reset" title="Reset Map View"><i class="fa-solid fa-compress"></i></button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>window.PAGE = 'map';</script>
+</body>
+</html>

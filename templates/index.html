@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WeatherSense AI — All-in-One Weather Intelligence Master Platform</title>
+  <meta name="description" content="WeatherSense AI unified dashboard: 15-day weather predictions, coastal alerts for tsunami, flood and cyclones, interactive risk maps, and multilingual AI weather tutor."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<!-- Animated Background -->
+<div class="bg-aurora"></div>
+<canvas id="particle-canvas"></canvas>
+
+<!-- Top Navigation & View Switcher -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <span class="nav-logo"><i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></span>
+    <span class="nav-title">WeatherSense <span class="accent">AI</span></span>
+  </div>
+  <ul class="nav-links">
+    <li><button class="nav-link {% if active_tab == 'dashboard' or not active_tab %}active{% endif %}" data-tab="dashboard" title="Slide 1: Live Weather"><i class="fa-solid fa-house"></i> Live Weather</button></li>
+    <li><button class="nav-link {% if active_tab == 'hourly' %}active{% endif %}" data-tab="hourly" title="Slide 2: 48H Hourly Forecast"><i class="fa-solid fa-clock"></i> 48H Forecast</button></li>
+    <li><button class="nav-link {% if active_tab == 'analytics' %}active{% endif %}" data-tab="analytics" title="Slide 3: Weather Trends"><i class="fa-solid fa-chart-line"></i> Trends</button></li>
+    <li><button class="nav-link {% if active_tab == 'forecast' %}active{% endif %}" data-tab="forecast" title="Slide 4: 15-Day Forecast"><i class="fa-solid fa-calendar-days"></i> 15-Day View</button></li>
+    <li><button class="nav-link {% if active_tab == 'map' %}active{% endif %}" data-tab="map" title="Slide 5: GeoJSON Risk Map"><i class="fa-solid fa-map-location-dot"></i> Risk Map</button></li>
+    <li><button class="nav-link {% if active_tab == 'coastal' %}active{% endif %}" data-tab="coastal" title="Slide 6: Coastal Radar"><i class="fa-solid fa-water"></i> Coastal Radar</button></li>
+    <li><button class="nav-link {% if active_tab == 'tutor' %}active{% endif %}" data-tab="tutor" title="Slide 7: AI Weather Tutor"><i class="fa-solid fa-robot"></i> AI Tutor</button></li>
+    <li><button class="nav-link {% if active_tab == 'survival' %}active{% endif %}" data-tab="survival" title="Slide 8: Survival Simulator"><i class="fa-solid fa-flag"></i> Survival Sim</button></li>
+    <li><button class="nav-link {% if active_tab == 'decoder' %}active{% endif %}" data-tab="decoder" title="Slide 9: Decoder & Puzzles"><i class="fa-solid fa-microchip"></i> Decoder & Puzzles</button></li>
+  </ul>
+  <div class="nav-time" id="nav-clock">--:--:--</div>
+</nav>
+
+<!-- MAIN TAB CONTAINER -->
+<div class="views-wrapper" style="max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem 5rem 1.5rem;">
+
+  <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+  <div class="tab-view {% if active_tab == 'dashboard' or not active_tab %}active{% endif %}" id="view-dashboard">
+    
+    <!-- Hero Section & Global Search -->
+    <header class="hero">
+      <div class="hero-content">
+        <div class="hero-badge"><i class="fa-solid fa-satellite"></i> Live Unified Weather Intelligence</div>
+        <h1 class="hero-title">WeatherSense <span class="gradient-text">AI Master Hub</span></h1>
+        <p class="hero-subtitle">
+          Complete Weather Intelligence Platform • 15-Day Predictions • Coastal Disaster Defense • Color Risk Mapping • AI Weather Advisor
+        </p>
+        <!-- Search Bar -->
+        <div class="search-container">
+          <div class="search-box" id="main-search-box">
+            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" id="city-input" placeholder="Search any city, state or region…" value="{{ city or 'Mumbai' }}" autocomplete="off"/>
+            <button class="btn-search" id="btn-search">Get Weather</button>
+            <button class="btn-locate" id="btn-locate" title="Use my location"><i class="fa-solid fa-location-crosshairs"></i></button>
+          </div>
+          <div class="search-suggestions" id="search-suggestions"></div>
+        </div>
+      </div>
+      <!-- Floating weather cards in hero -->
+      <div class="hero-floating-cards">
+        <div class="float-card" style="--delay:0s"><i class="fa-solid fa-temperature-three-quarters" style="color:#ff8a65"></i><br/><small>Temperature</small></div>
+        <div class="float-card" style="--delay:0.5s"><i class="fa-solid fa-cloud-showers-heavy" style="color:#38bdf8"></i><br/><small>Rainfall</small></div>
+        <div class="float-card" style="--delay:1s"><i class="fa-solid fa-wind" style="color:#14b8a6"></i><br/><small>Wind Speed</small></div>
+        <div class="float-card" style="--delay:1.5s"><i class="fa-solid fa-water" style="color:#06b6d4"></i><br/><small>Coastal Risk</small></div>
+        <div class="float-card" style="--delay:2s"><i class="fa-solid fa-tornado" style="color:#f59e0b"></i><br/><small>Cyclone Track</small></div>
+      </div>
+    </header>
+
+    <!-- Risk Legend Bar -->
+    <section class="risk-legend-bar">
+      <div class="legend-container">
+        <div class="legend-header-title">
+          <i class="fa-solid fa-palette" style="color:var(--accent-blue)"></i>
+          <span>Weather Risk Index</span>
+        </div>
+        <div class="legend-items-grid">
+          <div class="legend-item red" title="Score 80-100: Extreme weather, stay indoors">
+            <span class="legend-dot-pulse"></span>
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="legend-text-block">
+              <span class="legend-label">DANGER</span>
+              <span class="legend-sub">Extreme Hazard</span>
+            </div>
+          </div>
+          <div class="legend-item orange" title="Score 55-79: Severe weather, exercise caution">
+            <span class="legend-dot-pulse"></span>
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <div class="legend-text-block">
+              <span class="legend-label">WARNING</span>
+              <span class="legend-sub">Severe Weather</span>
+            </div>
+          </div>
+          <div class="legend-item yellow" title="Score 30-54: Unsettled weather, carry rain gear">
+            <span class="legend-dot-pulse"></span>
+            <i class="fa-solid fa-circle-info"></i>
+            <div class="legend-text-block">
+              <span class="legend-label">CAUTION</span>
+              <span class="legend-sub">Unsettled Conditions</span>
+            </div>
+          </div>
+          <div class="legend-item green" title="Score 0-29: Normal favorable conditions">
+            <span class="legend-dot-pulse"></span>
+            <i class="fa-solid fa-shield-halved"></i>
+            <div class="legend-text-block">
+              <span class="legend-label">SAFE</span>
+              <span class="legend-sub">Clear & Normal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="dashboard" id="dashboard">
+      <!-- Master Accordion Controls -->
+      <div class="accordion-controls-bar">
+        <div class="accordion-controls-title">
+          <i class="fa-solid fa-sliders" style="color:var(--accent-blue)"></i>
+          <span>Interactive Feature Cards</span>
+        </div>
+        <button class="btn-accordion-control" id="btn-expand-all"><i class="fa-solid fa-arrows-up-to-line"></i> Expand All</button>
+        <button class="btn-accordion-control" id="btn-collapse-all"><i class="fa-solid fa-arrows-down-to-line"></i> Collapse All</button>
+      </div>
+
+      <!-- Current Weather Card -->
+      <section class="card card-current accordion-card collapsed" id="current-weather-card">
+        <div class="card-header">
+          <div class="accordion-header-left">
+            <h2><i class="fa-solid fa-location-dot" style="color:var(--accent-blue)"></i> Current Weather</h2>
+            <span class="card-badge" id="current-risk-badge">Loading…</span>
+          </div>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div class="current-weather-body" id="current-weather-body">
+          <div class="loading-spinner"><div class="spinner"></div><p>Fetching weather data…</p></div>
+        </div>
+      </section>
+
+      <!-- Quick Stats Grid -->
+      <section class="card card-stats accordion-card collapsed" id="quick-stats">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-chart-simple" style="color:var(--accent-blue)"></i> Atmospheric Parameters</h2>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-droplet" style="color:#38bdf8"></i></div><div class="stat-label">Humidity</div><div class="stat-value" id="s-humidity">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-wind" style="color:#14b8a6"></i></div><div class="stat-label">Wind</div><div class="stat-value" id="s-wind">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-sun" style="color:#f59e0b"></i></div><div class="stat-label">UV Index</div><div class="stat-value" id="s-uv">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-temperature-half" style="color:#ff8a65"></i></div><div class="stat-label">Feels Like</div><div class="stat-value" id="s-feels">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-eye" style="color:#8b5cf6"></i></div><div class="stat-label">Visibility</div><div class="stat-value" id="s-vis">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-gauge-high" style="color:#06b6d4"></i></div><div class="stat-label">Pressure</div><div class="stat-value" id="s-pres">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-sun" style="color:#ffb703"></i></div><div class="stat-label">Sunrise</div><div class="stat-value" id="s-sunrise">—</div></div>
+          <div class="stat-item"><div class="stat-icon"><i class="fa-solid fa-moon" style="color:#fb8500"></i></div><div class="stat-label">Sunset</div><div class="stat-value" id="s-sunset">—</div></div>
+        </div>
+      </section>
+
+      <!-- 15-Day Forecast Strip -->
+      <section class="card card-forecast accordion-card collapsed" id="forecast-card">
+        <div class="card-header">
+          <div class="accordion-header-left">
+            <h2><i class="fa-solid fa-calendar-days" style="color:var(--accent-blue)"></i> 15-Day Risk Preview</h2>
+            <button class="btn-link tab-switch-btn" data-tab="forecast" onclick="event.stopPropagation()">View Full 15-Day View <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div class="forecast-strip" id="forecast-strip">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </section>
+
+      <!-- Quick Feature Navigation Cards Grid -->
+      <section class="dashboard-feature-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 1.5rem;">
+        <div class="card feature-nav-card" onclick="WS.switchTab('hourly')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-clock" style="color:var(--accent-blue)"></i> 48-Hour Forecast</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Explore hour-by-hour timeline of temperature, rain risk, and wind speed.</p>
+        </div>
+        
+        <div class="card feature-nav-card" onclick="WS.switchTab('analytics')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> Weather Trends</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">View high-resolution interactive charts for temperature, rainfall, and wind.</p>
+        </div>
+
+        <div class="card feature-nav-card" onclick="WS.switchTab('forecast')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-calendar-days" style="color:var(--accent-blue)"></i> 15-Day View</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Extended 15-day meteorologic predictions & flood risk gauge.</p>
+        </div>
+
+        <div class="card feature-nav-card" onclick="WS.switchTab('map')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-map-location-dot" style="color:var(--accent-blue)"></i> Risk Map</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Interactive GeoJSON color-coded risk maps for India & global cities.</p>
+        </div>
+
+        <div class="card feature-nav-card" onclick="WS.switchTab('coastal')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-water" style="color:var(--accent-cyan)"></i> Coastal Radar</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Monitor tsunami risk zones, storm surges, and live coastal advisories.</p>
+        </div>
+
+        <div class="card feature-nav-card" onclick="WS.switchTab('tutor')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i> AI Weather Tutor</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Ask safety & weather questions in 20+ languages with live advisor.</p>
+        </div>
+
+        <div class="card feature-nav-card" onclick="WS.switchTab('survival')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-flag" style="color:var(--accent-cyan)"></i> Survival Simulator</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Interactive country survival scenarios & daily 15-min goal tracker.</p>
+        </div>
+
+        <div class="card feature-nav-card" onclick="WS.switchTab('decoder')" style="cursor: pointer; transition: transform 0.2s ease;">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-microchip" style="color:var(--accent-cyan)"></i> Decoder & Puzzles</h2>
+            <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">Emergency signboard scanner and weather term matching games.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+
+  <!-- ==================== VIEW 2: 48-HOUR HOURLY FORECAST ==================== -->
+  <div class="tab-view {% if active_tab == 'hourly' %}active{% endif %}" id="view-hourly">
+    <div class="page-header" style="padding: 1.5rem 0 1rem 0;">
+      <h1><i class="fa-solid fa-clock" style="color:var(--accent-blue)"></i> 48-Hour Hourly Weather Forecast</h1>
+      <p style="color: var(--text-secondary); margin-top: 0.2rem;">Hour-by-hour meteorologic predictions, precipitation probability, and wind velocity.</p>
+    </div>
+    <main class="hourly-main">
+      <section class="card card-hourly accordion-card collapsed" id="hourly-card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-clock" style="color:var(--accent-blue)"></i> 48-Hour Interactive Timeline</h2>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div class="hourly-scroll" id="hourly-scroll">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+
+  <!-- ==================== VIEW 3: WEATHER TRENDS & ANALYTICS ==================== -->
+  <div class="tab-view {% if active_tab == 'analytics' %}active{% endif %}" id="view-analytics">
+    <div class="page-header" style="padding: 1.5rem 0 1rem 0;">
+      <h1><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> Weather Trends & Interactive Analytics</h1>
+      <p style="color: var(--text-secondary); margin-top: 0.2rem;">High-definition interactive parameter graphs for temperature, rain, and wind trends.</p>
+    </div>
+    <main class="analytics-main">
+      <section class="card card-chart accordion-card collapsed" id="temp-chart-card">
+        <div class="card-header">
+          <div class="accordion-header-left">
+            <h2><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> Parameter Trend Graph</h2>
+            <div class="chart-toggles" onclick="event.stopPropagation()">
+              <button class="toggle-btn active" data-chart="temp"><i class="fa-solid fa-temperature-high"></i> Temp</button>
+              <button class="toggle-btn" data-chart="rain"><i class="fa-solid fa-cloud-rain"></i> Rain</button>
+              <button class="toggle-btn" data-chart="wind"><i class="fa-solid fa-wind"></i> Wind</button>
+            </div>
+          </div>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div class="chart-container" style="height: 480px;">
+          <canvas id="weather-chart"></canvas>
+        </div>
+      </section>
+    </main>
+  </div>
+
+
+  <!-- ==================== VIEW 2: 15-DAY FORECAST ==================== -->
+  <div class="tab-view {% if active_tab == 'forecast' %}active{% endif %}" id="view-forecast">
+    <div class="page-header" style="padding: 1.5rem 0 1rem 0;">
+      <h1><i class="fa-solid fa-calendar-days" style="color:var(--accent-blue)"></i> 15-Day Advanced Weather Forecast</h1>
+      <p style="color: var(--text-secondary); margin-top: 0.2rem;">Extended meteorologic predictions with risk ratings, heavy rain indicators & advisory guidance.</p>
+    </div>
+    <main class="forecast-main">
+      <div class="location-header card" id="location-header">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+      <div class="risk-banner" id="risk-banner" style="display:none">
+        <div class="risk-banner-inner">
+          <div class="risk-emoji" id="banner-emoji"></div>
+          <div class="risk-info">
+            <div class="risk-label" id="banner-label"></div>
+            <div class="risk-desc" id="banner-desc"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card flood-risk-card accordion-card collapsed" id="flood-risk-card" style="display:none; margin-top: 1.5rem;">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-droplet" style="color:var(--accent-blue)"></i> 15-Day Flood & Rain Gauge</h2>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div id="flood-risk-body"></div>
+      </div>
+      <div class="forecast-grid" id="forecast-grid" style="margin-top: 1.5rem;">
+        <div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div><p>Loading 15-day cards…</p></div>
+      </div>
+      <div class="card chart-card accordion-card collapsed" style="margin-top:2rem">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> 15-Day Temperature & Precipitation Trend</h2>
+          <span class="accordion-toggle-badge">Click to Expand <i class="fa-solid fa-chevron-down accordion-toggle-icon"></i></span>
+        </div>
+        <div class="chart-container-tall">
+          <canvas id="forecast-chart"></canvas>
+        </div>
+      </div>
+    </main>
+  </div>
+
+
+  <!-- ==================== VIEW 3: COASTAL ALERTS ==================== -->
+  <div class="tab-view {% if active_tab == 'coastal' %}active{% endif %}" id="view-coastal">
+    <div class="page-header coastal-header" style="padding: 1.5rem 0 1rem 0;">
+      <div class="page-header-inner">
+        <h1><i class="fa-solid fa-water" style="color:var(--accent-cyan)"></i> Coastal Emergency & Disaster Radar</h1>
+        <p style="color: var(--text-secondary); margin-top: 0.2rem;">Tsunami Risk Zones • Storm Surge Radar • Cyclone Classification • Disaster Bulletins</p>
+      </div>
+      <div class="alert-ticker" id="alert-ticker" style="margin-top: 1rem;">
+        <span class="ticker-label"><i class="fa-solid fa-triangle-exclamation text-danger"></i> LIVE ALERTS:</span>
+        <div class="ticker-content" id="ticker-content">Loading alerts…</div>
+      </div>
+    </div>
+    <main class="coastal-main">
+      <div class="city-selector-row">
+        <div class="city-tabs" id="city-tabs">
+          {% for city_item in coastal_cities %}
+          <button class="city-tab {% if loop.first %}active{% endif %}"
+                  data-city="{{ city_item.name }}"
+                  data-coast="{{ city_item.coast }}">
+            {{ city_item.name }}
+            <small>{{ city_item.coast }} Coast</small>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="coastal-detail-grid">
+        <div class="card coastal-risk-card" id="coastal-risk-main">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+        <div class="card threat-matrix-card">
+          <div class="card-header"><h2><i class="fa-solid fa-shield-cat" style="color:var(--accent-blue)"></i> Threat Matrix</h2></div>
+          <div class="threat-grid" id="threat-grid">
+            <div class="threat-item" id="threat-tsunami"><div class="threat-icon"><i class="fa-solid fa-water" style="color:#06b6d4"></i></div><div class="threat-name">Tsunami Risk</div><div class="threat-level">Loading…</div></div>
+            <div class="threat-item" id="threat-cyclone"><div class="threat-icon"><i class="fa-solid fa-tornado" style="color:#f59e0b"></i></div><div class="threat-name">Cyclone Risk</div><div class="threat-level">Loading…</div></div>
+            <div class="threat-item" id="threat-flood"><div class="threat-icon"><i class="fa-solid fa-droplet" style="color:#38bdf8"></i></div><div class="threat-name">Flood Risk</div><div class="threat-level">Loading…</div></div>
+            <div class="threat-item" id="threat-storm"><div class="threat-icon"><i class="fa-solid fa-bolt-lightning" style="color:#ef4444"></i></div><div class="threat-name">Storm Surge</div><div class="threat-level">Loading…</div></div>
+          </div>
+        </div>
+        <div class="card tsunami-zones-card">
+          <div class="card-header"><h2><i class="fa-solid fa-water" style="color:var(--accent-blue)"></i> Tsunami Color Risk Map — India</h2></div>
+          
+          <!-- Tsunami Color Legend Bar -->
+          <div class="tsunami-legend-bar">
+            <div class="tsunami-legend-item">
+              <span class="tsunami-legend-dot red"></span>
+              <span>🔴 RED (Very High)</span>
+            </div>
+            <div class="tsunami-legend-item">
+              <span class="tsunami-legend-dot orange"></span>
+              <span>🟠 ORANGE (High)</span>
+            </div>
+            <div class="tsunami-legend-item">
+              <span class="tsunami-legend-dot yellow"></span>
+              <span>🟡 YELLOW (Moderate)</span>
+            </div>
+            <div class="tsunami-legend-item">
+              <span class="tsunami-legend-dot green"></span>
+              <span>🟢 GREEN (Low/Safe)</span>
+            </div>
+          </div>
+
+          <div id="tsunami-map" class="mini-map" style="height:420px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);"></div>
+          
+          <div class="tsunami-zones-list" style="margin-top: 1rem;">
+            {% for zone in tsunami_zones %}
+            <div class="zone-item zone-{{ zone.risk|lower|replace(' ','-') }}">
+              <span class="zone-name">{{ zone.name }}</span>
+              <span class="zone-risk">{{ zone.risk }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+
+  <!-- ==================== VIEW 4: INTERACTIVE RISK MAP ==================== -->
+  <div class="tab-view {% if active_tab == 'map' %}active{% endif %}" id="view-map">
+    <div class="map-view-container" style="padding-top: 1rem;">
+      <div class="map-hud-bar">
+        <div class="map-hud-search">
+          <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted)"></i>
+          <input type="text" id="map-search-input" placeholder="Search state or city..." autocomplete="off"/>
+        </div>
+        <div class="filter-pills" id="risk-filters">
+          <button class="filter-pill active" data-filter="ALL">All (<span id="cnt-all">34</span>)</button>
+          <button class="filter-pill" data-filter="RED" style="color:var(--risk-red)"><i class="fa-solid fa-circle"></i> Danger (<span id="cnt-red">0</span>)</button>
+          <button class="filter-pill" data-filter="ORANGE" style="color:var(--risk-orange)"><i class="fa-solid fa-circle"></i> Warning (<span id="cnt-orange">0</span>)</button>
+          <button class="filter-pill" data-filter="YELLOW" style="color:var(--risk-yellow)"><i class="fa-solid fa-circle"></i> Caution (<span id="cnt-yellow">0</span>)</button>
+          <button class="filter-pill" data-filter="GREEN" style="color:var(--risk-green)"><i class="fa-solid fa-circle"></i> Safe (<span id="cnt-green">0</span>)</button>
+        </div>
+        <div class="map-view-btns">
+          <button class="btn-map-view active" id="view-india"><i class="fa-solid fa-map-pin"></i> India States</button>
+          <button class="btn-map-view" id="view-world"><i class="fa-solid fa-globe"></i> World Cities</button>
+        </div>
+      </div>
+      <div id="full-map" style="height: 650px; border-radius: 16px; overflow: hidden; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.1);"></div>
+    </div>
+  </div>
+
+
+  <!-- ==================== VIEW 5: AI WEATHER TUTOR ==================== -->
+  <div class="tab-view {% if active_tab == 'tutor' %}active{% endif %}" id="view-tutor">
+    <main class="tutor-main" style="padding-top: 1rem;">
+      <div class="tutor-layout">
+        <aside class="tutor-sidebar">
+          <div class="card tutor-settings-card">
+            <h3><i class="fa-solid fa-gear" style="color:var(--accent-blue)"></i> Tutor Options</h3>
+            <div class="setting-group">
+              <label><i class="fa-solid fa-language"></i> Language</label>
+              <select id="tutor-lang" class="lang-select">
+                {% for code, name in languages.items() %}
+                <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="setting-group">
+              <label><i class="fa-solid fa-location-dot"></i> City Context</label>
+              <input type="text" id="tutor-city" placeholder="e.g. Mumbai, Chennai…" value="{{ city or 'Mumbai' }}" class="tutor-city-input"/>
+            </div>
+            <button class="btn-apply" id="btn-apply-settings"><i class="fa-solid fa-check"></i> Apply Settings</button>
+          </div>
+          <div class="card quick-topics-card">
+            <h3><i class="fa-solid fa-lightbulb" style="color:var(--accent-yellow)"></i> Quick Topics</h3>
+            <div class="topic-chips" id="topic-chips">
+              <button class="topic-chip" data-q="What should I do during a cyclone?"><i class="fa-solid fa-tornado" style="color:#f59e0b"></i> Cyclone Safety</button>
+              <button class="topic-chip" data-q="What are the signs of a tsunami?"><i class="fa-solid fa-water" style="color:#06b6d4"></i> Tsunami Signs</button>
+              <button class="topic-chip" data-q="How to prepare for a flood?"><i class="fa-solid fa-droplet" style="color:#38bdf8"></i> Flood Prep</button>
+              <button class="topic-chip" data-q="What does red alert mean in weather?"><i class="fa-solid fa-triangle-exclamation text-danger"></i> Red Alert</button>
+              <button class="topic-chip" data-q="How does the monsoon work in India?"><i class="fa-solid fa-cloud-showers-heavy" style="color:#0284c7"></i> Indian Monsoon</button>
+              <button class="topic-chip" data-q="What is UV index and how to protect?"><i class="fa-solid fa-sun" style="color:#f59e0b"></i> UV Safety</button>
+            </div>
+          </div>
+        </aside>
+        <section class="tutor-chat-panel">
+          <div class="chat-header">
+            <div class="chat-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i></div>
+            <div class="chat-title">
+              <h2>WeatherSense AI Tutor</h2>
+              <span class="chat-status" id="chat-status"><i class="fa-solid fa-circle text-success" style="font-size:0.6rem"></i> Online • Knowledge Base Active</span>
+            </div>
+            <button class="btn-clear-chat" id="btn-clear-chat"><i class="fa-solid fa-trash"></i> Clear Chat</button>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg bot-msg">
+              <div class="msg-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i></div>
+              <div class="msg-content">
+                <div class="msg-bubble">
+                  <strong>Hello! I'm WeatherSense AI Tutor <i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></strong><br/><br/>
+                  Ask me anything about weather, safety, monsoons, or climate in 20+ languages!
+                </div>
+                <div class="msg-time">WeatherSense AI</div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="chat-input-row">
+              <span class="input-lang-badge" id="input-lang-badge"><i class="fa-solid fa-language"></i> EN</span>
+              <textarea id="chat-input" placeholder="Ask a weather question in any language…" rows="1"></textarea>
+              <button class="btn-send" id="btn-send"><span id="send-icon"><i class="fa-solid fa-paper-plane"></i></span></button>
+            </div>
+            <div class="chat-input-hint">Press Enter to send • Shift+Enter for new line</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== VIEW 8: LINGOSURVIVE — COUNTRY SURVIVAL ==================== -->
+  <div class="tab-view {% if active_tab == 'survival' %}active{% endif %}" id="view-survival">
+    <div class="view-header" style="margin-bottom: 1.5rem;">
+      <h2><i class="fa-solid fa-flag" style="color:var(--accent-cyan)"></i> LingoSurvive — Country Survival Simulator</h2>
+      <p style="color: var(--text-secondary); margin-top: 0.2rem;">Master emergency weather survival responses in foreign countries with live scenario simulation.</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="card timer-hero-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+          <div>
+            <span class="badge-tag bg-cyan" style="background:rgba(0,242,254,0.15); color:var(--accent-cyan); border:1px solid rgba(0,242,254,0.3)">15-MIN DAILY MICRO-LEARNING</span>
+            <h3 style="margin-top:0.4rem; font-size:1.4rem">Daily Goal Tracker</h3>
+          </div>
+          <div id="lingo-timer-pct" style="font-size:1.6rem; font-weight:800; color:var(--accent-cyan)">0%</div>
+        </div>
+        <div class="timer-ring-container" style="text-align:center; padding:1rem 0">
+          <svg width="180" height="180" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" stroke="rgba(255,255,255,0.1)" stroke-width="12" fill="none"/>
+            <circle id="lingo-timer-ring" cx="100" cy="100" r="80" stroke="var(--accent-cyan)" stroke-width="12" fill="none" stroke-dasharray="502" stroke-dashoffset="502" style="transition: stroke-dashoffset 0.5s ease; transform: rotate(-90deg); transform-origin: 50% 50%"/>
+          </svg>
+          <div id="lingo-timer-rem" style="font-size:1rem; color:#aaa; margin-top:0.5rem">15:00 remaining</div>
+        </div>
+        <button id="lingo-timer-toggle" class="btn-primary" style="width:100%"><i class="fa-solid fa-play"></i> Start 15-Min Session</button>
+      </div>
+
+      <div class="card lingo-content-card" style="min-height:380px">
+        <div id="lingo-survival-card"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== VIEW 9: SIGNBOARD DECODER & PUZZLES ==================== -->
+  <div class="tab-view {% if active_tab == 'decoder' %}active{% endif %}" id="view-decoder">
+    <div class="view-header" style="margin-bottom: 1.5rem;">
+      <h2><i class="fa-solid fa-microchip" style="color:var(--accent-cyan)"></i> Emergency Signboard Decoder & Weather Puzzles</h2>
+      <p style="color: var(--text-secondary); margin-top: 0.2rem;">AI Signboard translation scanner & interactive weather survival term matching puzzles.</p>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem;">
+      <div class="card lingo-content-card">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;"><i class="fa-solid fa-microchip" style="color:var(--accent-cyan)"></i> Signboard Scanner</h3>
+        <div id="lingo-decoder-card"></div>
+      </div>
+
+      <div class="card lingo-content-card">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;"><i class="fa-solid fa-puzzle-piece" style="color:var(--accent-yellow)"></i> Term Match Puzzles</h3>
+        <div id="lingo-puzzle-card"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Floating Slide Deck Control HUD -->
+<div class="slide-deck-hud">
+  <button class="slide-deck-btn" id="btn-prev-slide" title="Previous Slide (Left Arrow)"><i class="fa-solid fa-chevron-left"></i> Prev Slide</button>
+  
+  <div class="slide-deck-pagination">
+    <span class="slide-counter-badge" id="slide-counter-num">Slide 1 / 9</span>
+    <div class="slide-dots-wrapper">
+      <span class="slide-dot active" data-tab="dashboard" title="Slide 1: Live Weather"></span>
+      <span class="slide-dot" data-tab="hourly" title="Slide 2: 48H Hourly Forecast"></span>
+      <span class="slide-dot" data-tab="analytics" title="Slide 3: Weather Trends"></span>
+      <span class="slide-dot" data-tab="forecast" title="Slide 4: 15-Day Forecast"></span>
+      <span class="slide-dot" data-tab="map" title="Slide 5: GeoJSON Risk Map"></span>
+      <span class="slide-dot" data-tab="coastal" title="Slide 6: Coastal Radar"></span>
+      <span class="slide-dot" data-tab="tutor" title="Slide 7: AI Weather Tutor"></span>
+      <span class="slide-dot" data-tab="survival" title="Slide 8: Survival Simulator"></span>
+      <span class="slide-dot" data-tab="decoder" title="Slide 9: Decoder & Puzzles"></span>
+    </div>
+  </div>
+
+  <button class="slide-deck-btn" id="btn-next-slide" title="Next Slide (Right Arrow)">Next Slide <i class="fa-solid fa-chevron-right"></i></button>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-brand">
+      <span><i class="fa-solid fa-earth-asia"></i> WeatherSense AI Master Platform</span>
+      <p>Powered by Open-Meteo API • GDACS • IMD Data</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://www.imd.gov.in" target="_blank">IMD India</a>
+      <a href="https://incois.gov.in" target="_blank">INCOIS</a>
+      <a href="https://ndma.gov.in" target="_blank">NDMA</a>
+    </div>
+    <div class="footer-emergency">
+      <i class="fa-solid fa-phone-volume" style="color:var(--risk-red)"></i> Emergency: <strong>112</strong> | NDRF: <strong>1800-180-4188</strong>
+    </div>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tutor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/lingo_bundle.js') }}"></script>
+<script>
+  window.ACTIVE_TAB = "{{ active_tab or 'dashboard' }}";
+  window.DEFAULT_CITY = "{{ city or 'Mumbai' }}";
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coastal Alerts — WeatherSense AI</title>
+  <meta name="description" content="Real-time coastal weather alerts for India including tsunami risk zones, flood warnings, and cyclone tracking."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<div class="bg-aurora"></div>
+<canvas id="particle-canvas"></canvas>
+
+<nav class="navbar">
+  <div class="nav-brand"><span class="nav-logo"><i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></span><span class="nav-title">WeatherSense <span class="accent">AI</span></span></div>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-link"><i class="fa-solid fa-house"></i> Dashboard</a></li>
+    <li><a href="/forecast" class="nav-link"><i class="fa-solid fa-calendar-days"></i> 15-Day Forecast</a></li>
+    <li><a href="/coastal" class="nav-link active"><i class="fa-solid fa-water"></i> Coastal Alerts</a></li>
+    <li><a href="/map" class="nav-link"><i class="fa-solid fa-map-location-dot"></i> Risk Map</a></li>
+    <li><a href="/tutor" class="nav-link"><i class="fa-solid fa-robot"></i> AI Tutor</a></li>
+  </ul>
+  <div class="nav-time" id="nav-clock"></div>
+</nav>
+
+<div class="page-header coastal-header">
+  <div class="page-header-inner">
+    <h1><i class="fa-solid fa-water" style="color:var(--accent-cyan)"></i> India Coastal Alerts</h1>
+    <p>Tsunami Risk Zones • Flood Warnings • Cyclone Tracking • 15-Day Coastal Forecast</p>
+  </div>
+  <!-- Live alerts ticker -->
+  <div class="alert-ticker" id="alert-ticker">
+    <span class="ticker-label"><i class="fa-solid fa-triangle-exclamation text-danger"></i> LIVE ALERTS:</span>
+    <div class="ticker-content" id="ticker-content">Loading alerts…</div>
+  </div>
+</div>
+
+<main class="coastal-main">
+  <!-- Coastal City Selector -->
+  <div class="city-selector-row">
+    <div class="city-tabs" id="city-tabs">
+      {% for city in coastal_cities %}
+      <button class="city-tab {% if loop.first %}active{% endif %}"
+              data-city="{{ city.name }}"
+              data-coast="{{ city.coast }}">
+        {{ city.name }}
+        <small>{{ city.coast }} Coast</small>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- City Detail Panel -->
+  <div class="coastal-detail-grid">
+
+    <!-- Main Risk Card -->
+    <div class="card coastal-risk-card" id="coastal-risk-main">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Threat Matrix -->
+    <div class="card threat-matrix-card">
+      <div class="card-header"><h2><i class="fa-solid fa-shield-cat" style="color:var(--accent-blue)"></i> Threat Assessment</h2></div>
+      <div class="threat-grid" id="threat-grid">
+        <div class="threat-item" id="threat-tsunami">
+          <div class="threat-icon"><i class="fa-solid fa-water" style="color:#06b6d4"></i></div>
+          <div class="threat-name">Tsunami Risk</div>
+          <div class="threat-level">Loading…</div>
+        </div>
+        <div class="threat-item" id="threat-cyclone">
+          <div class="threat-icon"><i class="fa-solid fa-tornado" style="color:#f59e0b"></i></div>
+          <div class="threat-name">Cyclone Risk</div>
+          <div class="threat-level">Loading…</div>
+        </div>
+        <div class="threat-item" id="threat-flood">
+          <div class="threat-icon"><i class="fa-solid fa-droplet" style="color:#38bdf8"></i></div>
+          <div class="threat-name">Flood Risk</div>
+          <div class="threat-level">Loading…</div>
+        </div>
+        <div class="threat-item" id="threat-storm">
+          <div class="threat-icon"><i class="fa-solid fa-bolt-lightning" style="color:#ef4444"></i></div>
+          <div class="threat-name">Storm Surge</div>
+          <div class="threat-level">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tsunami Zones Map -->
+    <div class="card tsunami-zones-card">
+      <div class="card-header"><h2><i class="fa-solid fa-water" style="color:var(--accent-blue)"></i> Tsunami Risk Zones — India</h2></div>
+      <div id="tsunami-map" class="mini-map" style="height:300px"></div>
+      <div class="tsunami-zones-list">
+        {% for zone in tsunami_zones %}
+        <div class="zone-item zone-{{ zone.risk|lower|replace(' ','-') }}">
+          <span class="zone-name">{{ zone.name }}</span>
+          <span class="zone-risk">{{ zone.risk }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 15-Day Coastal Forecast -->
+    <div class="card coastal-forecast-card">
+      <div class="card-header"><h2><i class="fa-solid fa-calendar-days" style="color:var(--accent-blue)"></i> 15-Day Coastal Forecast</h2></div>
+      <div class="coastal-forecast-list" id="coastal-forecast-list">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Safety Bulletin -->
+    <div class="card bulletin-card">
+      <div class="card-header"><h2><i class="fa-solid fa-clipboard-list" style="color:var(--accent-blue)"></i> Safety Bulletin</h2></div>
+      <pre class="bulletin-text" id="bulletin-text">Loading bulletin…</pre>
+      <div class="emergency-contacts">
+        <h3><i class="fa-solid fa-phone-volume" style="color:var(--risk-red)"></i> Emergency Contacts</h3>
+        <div class="contacts-grid">
+          <div class="contact-item"><span>National Emergency</span><strong>112</strong></div>
+          <div class="contact-item"><span>NDRF Rescue</span><strong>1800-180-4188</strong></div>
+          <div class="contact-item"><span>Coast Guard</span><strong>1554</strong></div>
+          <div class="contact-item"><span>IMD Helpline</span><strong>1800-180-1717</strong></div>
+          <div class="contact-item"><span>INCOIS Tsunami</span><strong>040-23895011</strong></div>
+          <div class="contact-item"><span>Disaster Mgmt</span><strong>1078</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flood Rivers -->
+    <div class="card flood-rivers-card">
+      <div class="card-header"><h2><i class="fa-solid fa-droplet" style="color:var(--accent-blue)"></i> Major Flood-Prone River Basins</h2></div>
+      <div class="rivers-list">
+        <div class="river-item risk-very-high"><span class="river-name"><i class="fa-solid fa-water"></i> Ganga Basin</span><span>Bihar, UP, West Bengal</span><span class="river-risk">VERY HIGH</span></div>
+        <div class="river-item risk-very-high"><span class="river-name"><i class="fa-solid fa-water"></i> Brahmaputra</span><span>Assam, Arunachal Pradesh</span><span class="river-risk">VERY HIGH</span></div>
+        <div class="river-item risk-high"><span class="river-name"><i class="fa-solid fa-water"></i> Godavari</span><span>Andhra Pradesh, Telangana</span><span class="river-risk">HIGH</span></div>
+        <div class="river-item risk-high"><span class="river-name"><i class="fa-solid fa-water"></i> Krishna</span><span>AP, Telangana, Karnataka</span><span class="river-risk">HIGH</span></div>
+        <div class="river-item risk-high"><span class="river-name"><i class="fa-solid fa-water"></i> Mahanadi</span><span>Odisha, Chhattisgarh</span><span class="river-risk">HIGH</span></div>
+        <div class="river-item risk-moderate"><span class="river-name"><i class="fa-solid fa-water"></i> Cauvery</span><span>Tamil Nadu, Karnataka</span><span class="river-risk">MODERATE</span></div>
+        <div class="river-item risk-moderate"><span class="river-name"><i class="fa-solid fa-water"></i> Narmada</span><span>MP, Gujarat</span><span class="river-risk">MODERATE</span></div>
+        <div class="river-item risk-high"><span class="river-name"><i class="fa-solid fa-water"></i> Damodar</span><span>Jharkhand, West Bengal</span><span class="river-risk">HIGH</span></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-brand"><i class="fa-solid fa-earth-asia"></i> WeatherSense AI — Coastal data: IMD, INCOIS, GDACS</div>
+    <div class="footer-emergency"><i class="fa-solid fa-phone-volume" style="color:var(--risk-red)"></i> Emergency: <strong>112</strong> | Coast Guard: <strong>1554</strong></div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>window.PAGE = 'coastal';</script>
+</body>
+</html>

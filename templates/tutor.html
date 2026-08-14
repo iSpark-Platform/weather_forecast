@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Weather Tutor — WeatherSense AI</title>
+  <meta name="description" content="Multilingual AI weather tutor supporting 20+ languages including all Indian languages. Ask questions about weather, safety, and climate."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<div class="bg-aurora"></div>
+<canvas id="particle-canvas"></canvas>
+
+<nav class="navbar">
+  <div class="nav-brand"><span class="nav-logo"><i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></span><span class="nav-title">WeatherSense <span class="accent">AI</span></span></div>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-link"><i class="fa-solid fa-house"></i> Dashboard</a></li>
+    <li><a href="/forecast" class="nav-link"><i class="fa-solid fa-calendar-days"></i> 15-Day</a></li>
+    <li><a href="/coastal" class="nav-link"><i class="fa-solid fa-water"></i> Coastal</a></li>
+    <li><a href="/map" class="nav-link"><i class="fa-solid fa-map-location-dot"></i> Risk Map</a></li>
+    <li><a href="/tutor" class="nav-link active"><i class="fa-solid fa-robot"></i> AI Tutor</a></li>
+  </ul>
+  <div class="nav-time" id="nav-clock"></div>
+</nav>
+
+<main class="tutor-main">
+  <div class="tutor-layout">
+
+    <!-- Left Sidebar -->
+    <aside class="tutor-sidebar">
+      <div class="card tutor-settings-card">
+        <h3><i class="fa-solid fa-gear" style="color:var(--accent-blue)"></i> Tutor Settings</h3>
+
+        <div class="setting-group">
+          <label><i class="fa-solid fa-language"></i> Select Language</label>
+          <select id="tutor-lang" class="lang-select">
+            {% for code, name in languages.items() %}
+            <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label><i class="fa-solid fa-location-dot"></i> Your Location (for context)</label>
+          <input type="text" id="tutor-city" placeholder="e.g. Mumbai, Chennai…" class="tutor-city-input"/>
+        </div>
+
+        <div class="setting-group">
+          <label><i class="fa-solid fa-key"></i> Gemini API Key (optional — for advanced AI)</label>
+          <input type="password" id="gemini-key" placeholder="Enter your Gemini API key…" class="tutor-city-input"/>
+          <small style="color:#aaa;font-size:.7rem">Leave blank for built-in knowledge base</small>
+        </div>
+
+        <button class="btn-apply" id="btn-apply-settings"><i class="fa-solid fa-check"></i> Apply Settings</button>
+      </div>
+
+      <!-- Quick Topics -->
+      <div class="card quick-topics-card">
+        <h3><i class="fa-solid fa-lightbulb" style="color:var(--accent-yellow)"></i> Quick Topics</h3>
+        <div class="topic-chips" id="topic-chips">
+          <button class="topic-chip" data-q="What should I do during a cyclone?"><i class="fa-solid fa-tornado" style="color:#f59e0b"></i> Cyclone Safety</button>
+          <button class="topic-chip" data-q="What are the signs of a tsunami?"><i class="fa-solid fa-water" style="color:#06b6d4"></i> Tsunami Signs</button>
+          <button class="topic-chip" data-q="How to prepare for a flood?"><i class="fa-solid fa-droplet" style="color:#38bdf8"></i> Flood Prep</button>
+          <button class="topic-chip" data-q="What does red alert mean in weather?"><i class="fa-solid fa-triangle-exclamation text-danger"></i> Red Alert</button>
+          <button class="topic-chip" data-q="How does the monsoon work in India?"><i class="fa-solid fa-cloud-showers-heavy" style="color:#0284c7"></i> Indian Monsoon</button>
+          <button class="topic-chip" data-q="What is UV index and how to protect?"><i class="fa-solid fa-sun" style="color:#f59e0b"></i> UV Safety</button>
+          <button class="topic-chip" data-q="How to stay safe during lightning?"><i class="fa-solid fa-bolt-lightning" style="color:#ef4444"></i> Lightning</button>
+          <button class="topic-chip" data-q="What is heat wave and how dangerous?"><i class="fa-solid fa-temperature-high" style="color:#ff8a65"></i> Heat Wave</button>
+          <button class="topic-chip" data-q="How to read weather forecast maps?"><i class="fa-solid fa-map-location-dot"></i> Forecast Maps</button>
+          <button class="topic-chip" data-q="What are cyclone seasons in India?"><i class="fa-solid fa-calendar-days"></i> Cyclone Season</button>
+        </div>
+      </div>
+
+      <!-- Supported Languages -->
+      <div class="card lang-list-card">
+        <h3><i class="fa-solid fa-globe"></i> Supported Languages</h3>
+        <div class="lang-pills">
+          {% for code, name in languages.items() %}
+          <span class="lang-pill" data-code="{{ code }}">{{ name }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Panel -->
+    <section class="tutor-chat-panel">
+      <div class="chat-header">
+        <div class="chat-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i></div>
+        <div class="chat-title">
+          <h2>WeatherSense AI Tutor</h2>
+          <span class="chat-status" id="chat-status"><i class="fa-solid fa-circle text-success" style="font-size:0.6rem"></i> Online • Knowledge Base Active</span>
+        </div>
+        <button class="btn-clear-chat" id="btn-clear-chat"><i class="fa-solid fa-trash"></i> Clear Chat</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg bot-msg">
+          <div class="msg-avatar"><i class="fa-solid fa-robot" style="color:var(--accent-purple)"></i></div>
+          <div class="msg-content">
+            <div class="msg-bubble">
+              <strong>Hello! I'm WeatherSense AI Tutor <i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></strong><br/><br/>
+              I can answer your questions about:<br/>
+              • Tsunamis • Cyclones • Floods<br/>
+              • Rain & Monsoon • Temperature<br/>
+              • Wind • UV Index • Lightning<br/><br/>
+              <em>Ask in any language — I understand them all!</em>
+            </div>
+            <div class="msg-time">WeatherSense AI</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <span class="input-lang-badge" id="input-lang-badge"><i class="fa-solid fa-language"></i> EN</span>
+          <textarea id="chat-input" placeholder="Ask a weather question in any language…" rows="1"></textarea>
+          <button class="btn-send" id="btn-send">
+            <span id="send-icon"><i class="fa-solid fa-paper-plane"></i></span>
+          </button>
+        </div>
+        <div class="chat-input-hint">Press Enter to send • Shift+Enter for new line • Supports 20+ languages</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-brand"><i class="fa-solid fa-robot"></i> WeatherSense AI Tutor — Powered by local knowledge base + Google Translate</div>
+    <div class="footer-emergency"><i class="fa-solid fa-phone-volume" style="color:var(--risk-red)"></i> Emergency: <strong>112</strong></div>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tutor.js') }}"></script>
+<script>window.PAGE = 'tutor';</script>
+</body>
+</html>

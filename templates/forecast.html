@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>15-Day Forecast — WeatherSense AI</title>
+  <meta name="description" content="Detailed 15-day weather forecast with temperature, rainfall, wind, UV index and daily risk assessment."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+<div class="bg-aurora"></div>
+<canvas id="particle-canvas"></canvas>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-logo"><i class="fa-solid fa-earth-asia" style="color:var(--accent-blue)"></i></span>
+    <span class="nav-title">WeatherSense <span class="accent">AI</span></span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-link"><i class="fa-solid fa-house"></i> Dashboard</a></li>
+    <li><a href="/forecast" class="nav-link active"><i class="fa-solid fa-calendar-days"></i> 15-Day Forecast</a></li>
+    <li><a href="/coastal" class="nav-link"><i class="fa-solid fa-water"></i> Coastal Alerts</a></li>
+    <li><a href="/map" class="nav-link"><i class="fa-solid fa-map-location-dot"></i> Risk Map</a></li>
+    <li><a href="/tutor" class="nav-link"><i class="fa-solid fa-robot"></i> AI Tutor</a></li>
+  </ul>
+  <div class="nav-time" id="nav-clock"></div>
+</nav>
+
+<div class="page-header">
+  <h1><i class="fa-solid fa-calendar-days" style="color:var(--accent-blue)"></i> 15-Day Weather Forecast</h1>
+  <div class="page-search-row">
+    <input type="text" id="city-input" placeholder="Enter city name…" value="{{ city }}"/>
+    <button class="btn-search" id="btn-search"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+    <button class="btn-locate" id="btn-locate"><i class="fa-solid fa-location-crosshairs"></i> My Location</button>
+  </div>
+</div>
+
+<main class="forecast-main">
+  <!-- Location Header -->
+  <div class="location-header card" id="location-header">
+    <div class="loading-spinner"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Overall Risk Banner -->
+  <div class="risk-banner" id="risk-banner" style="display:none">
+    <div class="risk-banner-inner">
+      <div class="risk-emoji" id="banner-emoji"></div>
+      <div class="risk-info">
+        <div class="risk-label" id="banner-label"></div>
+        <div class="risk-desc" id="banner-desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flood Risk Card -->
+  <div class="card flood-risk-card" id="flood-risk-card" style="display:none">
+    <div class="card-header"><h2><i class="fa-solid fa-droplet" style="color:var(--accent-blue)"></i> 15-Day Flood Risk Assessment</h2></div>
+    <div id="flood-risk-body"></div>
+  </div>
+
+  <!-- 15 Day Cards Grid -->
+  <div class="forecast-grid" id="forecast-grid">
+    <div class="loading-spinner" style="grid-column:1/-1">
+      <div class="spinner"></div>
+      <p>Fetching 15-day forecast…</p>
+    </div>
+  </div>
+
+  <!-- Temperature Chart -->
+  <div class="card chart-card" style="margin-top:2rem">
+    <div class="card-header">
+      <h2><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> 15-Day Temperature & Rain Chart</h2>
+    </div>
+    <div class="chart-container-tall">
+      <canvas id="forecast-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Hourly Strip -->
+  <div class="card" style="margin-top:2rem">
+    <div class="card-header"><h2><i class="fa-solid fa-clock" style="color:var(--accent-blue)"></i> 48-Hour Hourly Detail</h2></div>
+    <div class="hourly-scroll" id="hourly-scroll"></div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-brand"><i class="fa-solid fa-earth-asia"></i> WeatherSense AI — Data: Open-Meteo ECMWF</div>
+    <div class="footer-emergency"><i class="fa-solid fa-phone-volume" style="color:var(--risk-red)"></i> Emergency: <strong>112</strong></div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  window.PAGE = 'forecast';
+  window.DEFAULT_CITY = '{{ city }}';
+</script>
+</body>
+</html>
