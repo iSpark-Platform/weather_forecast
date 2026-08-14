@@ -47,10 +47,11 @@ INDIA_STATES = [
 ]
 
 
-from concurrent.futures import ThreadPoolExecutor
+import time
 
 def _process_state(state, geo_lookup):
     try:
+        time.sleep(0.03)
         weather = fetch_weather(state["lat"], state["lon"], forecast_days=3)
         if weather and weather.get("daily"):
             score = compute_risk_score(weather["daily"][0])
@@ -96,7 +97,7 @@ def fetch_map_data_india():
     """Fetch weather risk for all Indian states in parallel and return map-ready JSON with GeoJSON features."""
     geo_lookup = {feat["properties"]["name"]: feat for feat in INDIA_STATES_GEOJSON["features"]}
     
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         futures = [executor.submit(_process_state, state, geo_lookup) for state in INDIA_STATES]
         results_tuples = [f.result() for f in futures]
 
@@ -146,7 +147,7 @@ def _process_world_city(city):
 
 def fetch_map_data_world():
     """Fetch weather risk for world major cities in parallel."""
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         results = list(executor.map(_process_world_city, WORLD_CITIES))
     return results
 

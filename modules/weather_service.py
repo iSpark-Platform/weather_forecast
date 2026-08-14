@@ -5,9 +5,13 @@ from retry_requests import retry
 from datetime import datetime, date, timedelta
 import json
 
-# Setup cached session for performance
-cache_session = requests_cache.CachedSession('.cache', expire_after=1800)
-retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+import os
+import time
+
+# Setup cached session in environment-compatible location
+cache_path = os.path.join('/tmp' if os.path.exists('/tmp') else '.', 'openmeteo_cache')
+cache_session = requests_cache.CachedSession(cache_path, expire_after=3600)
+retry_session = retry(cache_session, retries=3, backoff_factor=0.5)
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 GEOCODING_URL  = "https://geocoding-api.open-meteo.com/v1/search"
@@ -209,9 +213,14 @@ def fetch_weather(lat, lon, timezone="auto", forecast_days=15):
             "elevation": data.get("elevation"),
         }
 
+    except requests.exceptions.HTTPError as err:
+        if err.response is not None and err.response.status_code == 429:
+            print("Open-Meteo rate limit (429) hit, using fallback data.")
+        else:
+            print(f"Weather HTTP error: {err}")
+        return None
     except Exception as e:
         print(f"Weather fetch error: {e}")
-        import traceback; traceback.print_exc()
         return None
 
 
