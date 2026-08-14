@@ -39,6 +39,11 @@ def _cache_is_fresh():
 
 # ── Routes ─────────────────────────────────────────────────────────────────
 
+@app.route("/healthz")
+def healthz():
+    """Health check endpoint for Render / cloud deployment."""
+    return jsonify({"status": "ok"}), 200
+
 @app.route("/")
 def index():
     """Main master dashboard page."""
